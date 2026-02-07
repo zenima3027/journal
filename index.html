@@ -6,6 +6,7 @@
 <title>For Us</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display&family=Inter&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Inter;background:#0e0e0e;color:#f2f2f2;overflow-x:hidden}
@@ -46,6 +47,7 @@ label{display:flex;flex-direction:column;font-size:.6rem}
 #particles{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-5;pointer-events:none}
 </style>
 </head>
+
 <body>
 
 <section class="entry">
@@ -80,68 +82,87 @@ label{display:flex;flex-direction:column;font-size:.6rem}
 </div>
 
 <script>
-// ---------- STATE ----------
-let locked = true;
-let blocks = JSON.parse(localStorage.getItem('blocks') || '[]').filter(b => b.type !== 'memory' || b.image);
-const blocksEl = document.getElementById('blocks');
-const bg = document.querySelector('.bg');
-const bgUrl = localStorage.getItem('bg'); if(bgUrl) bg.style.backgroundImage = `url(${bgUrl})`;
-let bgMode = localStorage.getItem('bgMode') || 'cover'; bg.style.backgroundSize = bgMode;
-const blur = document.getElementById('bgBlur');
-const bright = document.getElementById('bgBright');
-blur.value = localStorage.getItem('bgBlur') || 4;
-bright.value = localStorage.getItem('bgBright') || 0.95;
-bg.style.setProperty('--bg-blur', blur.value+'px');
-bg.style.setProperty('--bg-bright', bright.value);
-let bgBrightness = parseFloat(bright.value) || 0.95;
-blur.oninput = e => { bg.style.setProperty('--bg-blur', e.target.value+'px'); localStorage.setItem('bgBlur', e.target.value); }
-bright.oninput = e => { bgBrightness = parseFloat(e.target.value); bg.style.setProperty('--bg-bright', e.target.value); localStorage.setItem('bgBright', e.target.value); }
-function toggleBGMode(){ bgMode = (bgMode==='cover')?'contain':'cover'; bg.style.backgroundSize = bgMode; localStorage.setItem('bgMode', bgMode); }
+/* ---------- STATE ---------- */
+let locked=true;
+let blocks=JSON.parse(localStorage.getItem('blocks')||'[]');
+const blocksEl=document.getElementById('blocks');
+const bg=document.querySelector('.bg');
 
-// ---------- HELPERS ----------
-function save(){ localStorage.setItem('blocks', JSON.stringify(blocks)); }
-function makeDraggable(el, data){
-  let sx,sy; el.style.transform=`translate(${data.x||0}px,${data.y||0}px)`;
-  el.onpointerdown=e=>{ if(locked||e.target.closest('.delete')||e.target.closest('.resize-handle')) return; sx=e.clientX-(data.x||0); sy=e.clientY-(data.y||0); el.setPointerCapture(e.pointerId); }
-  el.onpointermove=e=>{ if(!el.hasPointerCapture(e.pointerId)) return; data.x=e.clientX-sx; data.y=e.clientY-sy; el.style.transform=`translate(${data.x}px,${data.y}px)`; }
+bg.style.backgroundImage=`url(${localStorage.getItem('bg')||''})`;
+
+let bgMode = localStorage.getItem('bgMode') || 'cover';
+bg.style.backgroundSize = bgMode;
+
+const blur=document.getElementById('bgBlur');
+const bright=document.getElementById('bgBright');
+
+blur.value=localStorage.getItem('bgBlur')||4;
+bright.value=localStorage.getItem('bgBright')||.95;
+
+bg.style.setProperty('--bg-blur',blur.value+'px');
+bg.style.setProperty('--bg-bright',bright.value);
+
+let bgBrightness=parseFloat(bright.value)||0.95;
+
+blur.oninput=e=>{bg.style.setProperty('--bg-blur',e.target.value+'px');localStorage.setItem('bgBlur',e.target.value);}
+bright.oninput=e=>{bgBrightness=parseFloat(e.target.value);bg.style.setProperty('--bg-bright',e.target.value);localStorage.setItem('bgBright',e.target.value);}
+
+function toggleBGMode() {
+  bgMode = (bgMode === 'cover') ? 'contain' : 'cover';
+  bg.style.backgroundSize = bgMode;
+  localStorage.setItem('bgMode', bgMode);
+}
+
+/* ---------- HELPERS ---------- */
+function save(){localStorage.setItem('blocks',JSON.stringify(blocks));}
+function makeDraggable(el,data){
+  let sx,sy;
+  el.style.transform=`translate(${data.x||0}px,${data.y||0}px)`;
+  el.onpointerdown=e=>{
+    if(locked||e.target.closest('.delete')||e.target.closest('.resize-handle')) return;
+    sx=e.clientX-(data.x||0); sy=e.clientY-(data.y||0); el.setPointerCapture(e.pointerId);
+  };
+  el.onpointermove=e=>{if(!el.hasPointerCapture(e.pointerId)) return; data.x=e.clientX-sx; data.y=e.clientY-sy; el.style.transform=`translate(${data.x}px,${data.y}px)`;};
   el.onpointerup=()=>save();
 }
 function makeResizable(block,data){
   ['nw','ne','sw','se'].forEach(p=>{
     const h=document.createElement('div'); h.className=`resize-handle resize-${p}`; block.appendChild(h);
     let sx,sy,sw,sh;
-    h.onpointerdown=e=>{ if(locked) return; e.stopPropagation(); sx=e.clientX; sy=e.clientY; sw=block.offsetWidth; sh=block.offsetHeight; h.setPointerCapture(e.pointerId); }
-    h.onpointermove=e=>{ if(!h.hasPointerCapture(e.pointerId)) return; const dx=e.clientX-sx,dy=e.clientY-sy; block.style.width=Math.max(120,sw+(p.includes('e')?dx:-dx))+'px'; block.style.height=Math.max(40,sh+(p.includes('s')?dy:-dy))+'px'; }
-    h.onpointerup=()=>{ data.w=block.offsetWidth; data.h=block.offsetHeight; save(); }
+    h.onpointerdown=e=>{if(locked) return; e.stopPropagation(); sx=e.clientX; sy=e.clientY; sw=block.offsetWidth; sh=block.offsetHeight; h.setPointerCapture(e.pointerId);};
+    h.onpointermove=e=>{if(!h.hasPointerCapture(e.pointerId)) return; const dx=e.clientX-sx, dy=e.clientY-sy; block.style.width=Math.max(120,sw+(p.includes('e')?dx:-dx))+'px'; block.style.height=Math.max(40,sh+(p.includes('s')?dy:-dy))+'px';};
+    h.onpointerup=()=>{data.w=block.offsetWidth; data.h=block.offsetHeight; save();};
   });
 }
 
-// ---------- RENDER ----------
+/* ---------- RENDER ---------- */
 function render(){
   blocksEl.innerHTML='';
-  blocks.forEach(b=>{ if(b.type==='text') createText(b); if(b.type==='memory') createMemory(b); if(b.type==='separator') createSeparator(b); });
+  blocks.forEach(b=>{if(b.type==='text') createText(b); if(b.type==='memory') createMemory(b); if(b.type==='separator') createSeparator(b);});
 }
 
-// ---------- CREATE BLOCKS ----------
+/* ---------- CREATE ---------- */
 function createText(d){
   const b=document.createElement('div'); b.className='block'; makeDraggable(b,d); makeResizable(b,d);
   if(d.w) b.style.width=d.w+'px'; if(d.h) b.style.height=d.h+'px';
-  const t=document.createElement('div'); t.className='textBlock'; t.contentEditable=!locked; t.innerText=d.text||''; t.oninput=()=>{ d.text=t.innerText; save(); }
-  const del=document.createElement('div'); del.className='delete'; del.innerText='×'; del.onpointerdown=e=>e.stopPropagation(); del.onclick=e=>{ e.stopPropagation(); if(!locked){ blocks=blocks.filter(x=>x.id!==d.id); save(); render(); } }
+  const t=document.createElement('div'); t.className='textBlock'; t.contentEditable=!locked; t.innerText=d.text||''; t.oninput=()=>{d.text=t.innerText; save();}
+  const del=document.createElement('div'); del.className='delete'; del.innerText='×'; del.onpointerdown=e=>e.stopPropagation(); del.onclick=e=>{ e.stopPropagation(); if(!locked){blocks=blocks.filter(x=>x.id!==d.id); save(); render();} };
   b.append(del,t); blocksEl.appendChild(b);
 }
+
 function createMemory(d){
   const b=document.createElement('div'); b.className='block'; makeDraggable(b,d);
   const m=document.createElement('div'); m.className='memory '+(d.shape||'square');
-  const img=document.createElement('img'); img.src=d.image||''; m.appendChild(img);
+  const img=document.createElement('img'); img.src=d.image; m.appendChild(img);
   const cap=document.createElement('div'); cap.className='caption'; cap.contentEditable=!locked; cap.innerText=d.text||''; cap.oninput=()=>{ d.text=cap.innerText; save(); };
   const del=document.createElement('div'); del.className='delete'; del.innerText='×'; del.onpointerdown=e=>e.stopPropagation(); del.onclick=e=>{ e.stopPropagation(); if(!locked){ blocks=blocks.filter(x=>x.id!==d.id); save(); render(); } };
-  m.onclick=()=>{ const modal=document.getElementById('memoryModal'); modal.style.display='flex'; modal.querySelector('img').src=d.image||''; modal.querySelector('.modal-caption').innerText=d.text||''; };
+  m.onclick=()=>{ const modal=document.getElementById('memoryModal'); modal.style.display='flex'; modal.querySelector('img').src=d.image; modal.querySelector('.modal-caption').innerText=d.text||''; };
   b.append(del,m,cap); blocksEl.appendChild(b);
 }
-function createSeparator(d){ const b=document.createElement('div'); b.className='block'; makeDraggable(b,d); const s=document.createElement('div'); s.className='separator'; const del=document.createElement('div'); del.className='delete'; del.innerText='×'; del.onpointerdown=e=>e.stopPropagation(); del.onclick=e=>{ e.stopPropagation(); if(!locked){blocks=blocks.filter(x=>x.id!==d.id); save(); render();} }; b.append(del,s); blocksEl.appendChild(b); }
 
-// ---------- CONTROLS ----------
+function createSeparator(d){ const b=document.createElement('div'); b.className='block'; makeDraggable(b,d); const s=document.createElement('div'); s.className='separator'; const del=document.createElement('div'); del.className='delete'; del.innerText='×'; del.onpointerdown=e=>e.stopPropagation(); del.onclick=e=>{ e.stopPropagation(); if(!locked){blocks=blocks.filter(x=>x.id!==d.id); save(); render();} }; b.append(del,s); blocksEl.appendChild(b);}
+
+/* ---------- CONTROLS ---------- */
 lockBtn.onclick=()=>{ locked=!locked; document.body.classList.toggle('unlocked',!locked); lockBtn.innerText=locked?'unlock':'lock'; render(); };
 addText.onclick=()=>{ if(locked) return; blocks.push({id:Date.now(),type:'text'}); save(); render(); };
 addMemory.onclick=()=>{
@@ -155,31 +176,204 @@ addMemory.onclick=()=>{
 addSeparator.onclick=()=>{ if(locked) return; blocks.push({id:Date.now(),type:'separator'}); save(); render(); };
 changeBG.onclick=()=>{ const i=document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=e=>{ const r=new FileReader(); r.onload=()=>{ localStorage.setItem('bg',r.result); bg.style.backgroundImage=`url(${r.result})`; }; r.readAsDataURL(e.target.files[0]); }; i.click(); };
 exportPDF.onclick=()=>{ document.body.classList.add('exporting'); html2pdf().from(document.body).save().then(()=>{ document.body.classList.remove('exporting'); }); };
-document.getElementById('memoryModal').onclick=e=>{ if(e.target===document.getElementById('memoryModal')) e.currentTarget.style.display='none'; };
 
-// ---------- EXPORT HTML ----------
-document.getElementById('exportHTML').onclick=()=>{ 
-  const clone=document.documentElement.cloneNode(true);
-  clone.querySelectorAll('.controls,.delete,.resize-handle').forEach(el=>el.remove());
-  clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
-  const cloneBg=clone.querySelector('.bg'); if(cloneBg) cloneBg.style.backgroundImage='none';
-  const style=document.createElement('style'); style.innerHTML=`.memory{cursor:pointer;touch-action:manipulation}.memory img{filter:none!important} #memoryModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);justify-content:center;align-items:center;z-index:100;padding:1rem;box-sizing:border-box} #memoryModal .modal-content{display:flex;flex-direction:column;gap:1.5rem;align-items:center;max-width:100%;max-height:100%} #memoryModal img{max-width:100%;max-height:80vh;object-fit:contain} #memoryModal .modal-caption{font-family:'Playfair Display',serif;text-align:center;color:#fff;padding:0 1rem;max-width:100%;font-size:1.2rem} #particles{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-5;pointer-events:none}`;
-  clone.querySelector('head').appendChild(style);
-  const script=document.createElement('script');
-  script.textContent=`${/* full export HTML JS for memory modal and particles */''}`;
-  clone.querySelector('body').appendChild(script);
-  const html='<!DOCTYPE html>\\n'+clone.outerHTML;
-  const blob=new Blob([html],{type:'text/html'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download='memory.html'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+document.getElementById('memoryModal').onclick = (e) => {
+  if (e.target === document.getElementById('memoryModal')) {
+    e.currentTarget.style.display = 'none';
+  }
 };
 
-// ---------- INITIAL RENDER ----------
+document.getElementById('exportHTML').onclick = () => {
+  const clone = document.documentElement.cloneNode(true);
+
+  clone.querySelectorAll('.controls, .delete, .resize-handle').forEach(el => el.remove());
+  clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+
+  const cloneBg = clone.querySelector('.bg');
+  if (cloneBg) cloneBg.style.backgroundImage = 'none';
+
+  const style = document.createElement('style');
+  style.innerHTML = `
+    .memory { cursor: pointer; touch-action: manipulation; }
+    .memory img { filter: none !important; }
+    #memoryModal { 
+      display: none; 
+      position: fixed; 
+      inset: 0; 
+      background: rgba(0,0,0,.9); 
+      justify-content: center; 
+      align-items: center; 
+      z-index: 100; 
+      padding: 1rem;
+      box-sizing: border-box;
+    }
+    #memoryModal .modal-content { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 1.5rem; 
+      align-items: center; 
+      max-width: 100%;
+      max-height: 100%;
+    }
+    #memoryModal img { 
+      max-width: 100%; 
+      max-height: 80vh; 
+      object-fit: contain; 
+    }
+    #memoryModal .modal-caption { 
+      font-family: 'Playfair Display', serif; 
+      text-align: center; 
+      color: #fff; 
+      padding: 0 1rem; 
+      max-width: 100%;
+      font-size: 1.2rem;
+    }
+    @media (max-width: 600px) {
+      #memoryModal { 
+        padding: 0; 
+        background: #000; 
+      }
+      #memoryModal img { 
+        max-height: 75vh; 
+      }
+      #memoryModal .modal-caption { 
+        font-size: 1.1rem; 
+        padding: 1rem;
+      }
+    }
+    #particles { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -5; pointer-events: none; }
+  `;
+  clone.querySelector('head').appendChild(style);
+
+  const script = document.createElement('script');
+  script.textContent = `
+    document.querySelectorAll('.memory').forEach(m => {
+      m.onclick = () => {
+        const modal = document.getElementById('memoryModal');
+        const fullImg = m.querySelector('img').src;
+        const caption = m.parentElement.querySelector('.caption')?.innerText || '';
+        modal.querySelector('img').src = fullImg;
+        modal.querySelector('.modal-caption').innerText = caption;
+        modal.style.display = 'flex';
+      };
+    });
+
+    const modal = document.getElementById('memoryModal');
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+      }
+    };
+
+    const canvas = document.getElementById('particles');
+    const ctx = canvas.getContext('2d');
+    let w, h;
+    function resize(){ w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; }
+    resize(); window.addEventListener('resize', resize);
+
+    const pointer = {x:null, y:null};
+    window.addEventListener('mousemove', e => { pointer.x = e.clientX; pointer.y = e.clientY; });
+    window.addEventListener('touchmove', e => { pointer.x = e.touches[0].clientX; pointer.y = e.touches[0].clientY; });
+    window.addEventListener('mouseleave', () => { pointer.x = pointer.y = null; });
+
+    const COUNT = Math.min(120, Math.floor((w * h) / 9000));
+    const particles = [];
+    for (let i = 0; i < COUNT; i++) {
+      particles.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: Math.random() * 1.4 + 0.6,
+        vx: (Math.random() - 0.5) * 0.25,
+        vy: (Math.random() - 0.5) * 0.25,
+        baseAlpha: Math.random() * 0.4 + 0.2
+      });
+    }
+
+    const bgBrightness = ${bgBrightness};
+
+    function animate() {
+      ctx.clearRect(0, 0, w, h);
+      const glow = bgBrightness < 0.7;
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0) p.x = w;
+        if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h;
+        if (p.y > h) p.y = 0;
+
+        let alpha = p.baseAlpha;
+        if (pointer.x !== null) {
+          const dx = p.x - pointer.x;
+          const dy = p.y - pointer.y;
+          const d = Math.hypot(dx, dy);
+          if (d < 120) {
+            const f = (120 - d) / 120;
+            p.vx += (dx / d) * f * 0.02;
+            p.vy += (dy / d) * f * 0.02;
+            alpha += f * 0.4;
+            alpha = Math.min(alpha, 1);
+          }
+        }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        if (glow) { ctx.shadowBlur = 12; ctx.shadowColor = 'rgba(255,240,200,0.8)'; }
+        else { ctx.shadowBlur = 0; }
+        ctx.fillStyle = \`rgba(255,245,230,\${alpha})\`;
+        ctx.fill();
+      });
+      ctx.shadowBlur = 0;
+      requestAnimationFrame(animate);
+    }
+    animate();
+  `;
+  const cloneBody = clone.querySelector('body');
+  if (cloneBody) cloneBody.appendChild(script);
+
+  const html = '<!DOCTYPE html>\\n' + clone.outerHTML;
+  const blob = new Blob([html], {type: 'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'memory.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 render();
 
-// ---------- PARTICLES ----------
-const canvas=document.getElementById('particles'); const ctx=canvas.getContext('2d'); let w,h; function resizeCanvas(){ w=canvas.width=window.innerWidth; h=canvas.height=window.innerHeight; } resizeCanvas(); window.addEventListener('resize',resizeCanvas); const pointer={x:null,y:null}; window.addEventListener('mousemove',e=>{pointer.x=e.clientX;pointer.y=e.clientY}); window.addEventListener('touchmove',e=>{pointer.x=e.touches[0].clientX;pointer.y=e.touches[0].clientY}); window.addEventListener('mouseleave',()=>{pointer.x=pointer.y=null}); const COUNT=Math.min(120,Math.floor((w*h)/9000)); const particles=[]; for(let i=0;i<COUNT;i++){particles.push({x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.4+0.6,vx:(Math.random()-0.5)*0.25,vy:(Math.random()-0.5)*0.25,baseAlpha:Math.random()*0.4+0.2});} function animate(){ ctx.clearRect(0,0,w,h); const glow=bgBrightness<0.7; particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; if(p.x<0)p.x=w; if(p.x>w)p.x=0; if(p.y<0)p.y=h; if(p.y>h)p.y=0; let alpha=p.baseAlpha; if(pointer.x!==null){ const dx=p.x-pointer.x; const dy=p.y-pointer.y; const d=Math.hypot(dx,dy); if(d<120){ const f=(120-d)/120; p.vx+=(dx/d)*f*0.02; p.vy+=(dy/d)*f*0.02; alpha+=f*0.4; alpha=Math.min(alpha,1); } } ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); if(glow){ ctx.shadowBlur=12; ctx.shadowColor='rgba(255,240,200,0.8)'; } else { ctx.shadowBlur=0; } ctx.fillStyle=\`rgba(255,245,230,\${alpha})\`; ctx.fill(); }); ctx.shadowBlur=0
-requestAnimationFrame(animate);
+/* ---------- PARTICLES (editor) ---------- */
+const canvas=document.getElementById('particles');
+const ctx=canvas.getContext('2d');
+let w,h;
+function resizeCanvas(){ w=canvas.width=window.innerWidth; h=canvas.height=window.innerHeight; }
+resizeCanvas(); window.addEventListener('resize',resizeCanvas);
+const pointer={x:null,y:null};
+window.addEventListener('mousemove',e=>{pointer.x=e.clientX;pointer.y=e.clientY;});
+window.addEventListener('touchmove',e=>{pointer.x=e.touches[0].clientX;pointer.y=e.touches[0].clientY;});
+window.addEventListener('mouseleave',()=>{pointer.x=pointer.y=null;});
+const COUNT=Math.min(120,Math.floor((w*h)/9000));
+const particles=[];
+for(let i=0;i<COUNT;i++){particles.push({x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.4+0.6,vx:(Math.random()-0.5)*0.25,vy:(Math.random()-0.5)*0.25,baseAlpha:Math.random()*0.4+0.2});}
+function animate(){
+  ctx.clearRect(0,0,w,h);
+  const glow=bgBrightness<0.7;
+  particles.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy;
+    if(p.x<0)p.x=w; if(p.x>w)p.x=0; if(p.y<0)p.y=h; if(p.y>h)p.y=0;
+    let alpha=p.baseAlpha;
+    if(pointer.x!==null){ 
+      const dx=p.x-pointer.x; const dy=p.y-pointer.y; const d=Math.hypot(dx,dy); 
+      if(d<120){ const f=(120-d)/120; p.vx+=(dx/d)*f*0.02; p.vy+=(dy/d)*f*0.02; alpha+=f*0.4; alpha=Math.min(alpha,1); } 
+    }
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    if(glow){ ctx.shadowBlur=12; ctx.shadowColor='rgba(255,240,200,0.8)'; } else { ctx.shadowBlur=0; }
+    ctx.fillStyle=`rgba(255,245,230,${alpha})`; ctx.fill();
+  });
+  ctx.shadowBlur=0; requestAnimationFrame(animate);
 }
 animate();
 </script>
