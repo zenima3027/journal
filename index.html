@@ -276,7 +276,7 @@ document.getElementById('exportHTML').onclick = () => {
     window.addEventListener('touchmove', e => { pointer.x = e.touches[0].clientX; pointer.y = e.touches[0].clientY; });
     window.addEventListener('mouseleave', () => { pointer.x = pointer.y = null; });
 
-    const COUNT = Math.min(120, Math.floor((w * h) / 9000));
+    const COUNT = Math.min(120, Math.floor((w * h) / 80000));
     const particles = [];
     for (let i = 0; i < COUNT; i++) {
       particles.push({
@@ -380,5 +380,6 @@ animate();
 
 </body>
 </html>
+
 
 
